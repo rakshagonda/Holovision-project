@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>HoloVision — AI Assistive Vision System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- User Gesture & Start Overlay -->
+<div id="startOverlay" onclick="this.style.display='none'; if(window.launchApp) launchApp();">
+  <h1>HoloVision Assist</h1>
+  <p>AI-Powered Assistive Vision System.<br>Monocular Obstacle Detection, Real-Time Edge Frame & Multilingual Voice Guidance.</p>
+  <button class="startBtn" type="button">Tap to Start HoloVision</button>
+</div>
+
+<header>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"></circle><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg>
+    HoloVision Assist
+  </div>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <button id="camFlipBtn" type="button" style="padding:4px 10px; font-size:12px;">Flip Camera</button>
+    <span id="aiBadge" class="badge warn">AI Loading...</span>
+    <span id="safetyBadge" class="badge ok">SAFE</span>
+  </div>
+</header>
+
+<main>
+  <!-- Stage Display Area -->
+  <section class="stage-box">
+    <div id="stageWrap" class="stage-wrap clear">
+      <div id="stopBanner">STOP — OBSTACLE WITHIN 100 CM</div>
+      <canvas id="hudCanvas" width="640" height="360" aria-label="HoloVision HUD Canvas"></canvas>
+      <video id="webcam" playsinline muted autoplay aria-label="Webcam feed"></video>
+    </div>
+
+    <!-- Directional Threat Heatmaps -->
+    <div class="zones-bar" aria-label="Obstacle Proximity Zones">
+      <div class="zone-col">
+        Left <span id="valL" class="pct">0%</span>
+        <div class="zone-track"><div id="fillL" class="zone-fill"></div></div>
+      </div>
+      <div class="zone-col">
+        Ahead <span id="valC" class="pct">0%</span>
+        <div class="zone-track"><div id="fillC" class="zone-fill"></div></div>
+      </div>
+      <div class="zone-col">
+        Right <span id="valR" class="pct">0%</span>
+        <div class="zone-track"><div id="fillR" class="zone-fill"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sidebar Controls -->
+  <aside>
+    <!-- Vision Impairment Digital Profiles -->
+    <div class="card">
+      <h2>Vision Impairment Profile</h2>
+      <div class="btn-grid" role="group" aria-label="Vision Profile">
+        <button type="button" data-p="mild" aria-pressed="false">Mild<br><small>Enhanced view</small></button>
+        <button type="button" data-p="moderate" aria-pressed="true">Moderate<br><small>Neon Edges</small></button>
+        <button type="button" data-p="severe" aria-pressed="false">Severe<br><small>92% Radar</small></button>
+      </div>
+    </div>
+
+    <!-- Multilingual Voice Navigation -->
+    <div class="card">
+      <h2>Voice Navigation & Alerts</h2>
+      <div class="btn-grid" role="group" aria-label="Language">
+        <button type="button" data-l="en" aria-pressed="true">English</button>
+        <button type="button" data-l="hi" aria-pressed="false">हिन्दी</button>
+        <button type="button" data-l="kn" aria-pressed="false">ಕನ್ನಡ</button>
+      </div>
+      <button id="speakStatusBtn" class="action-btn" type="button">What is around me?</button>
+      <p id="voiceInfo" class="notice">Voices: loading…</p>
+    </div>
+
+    <!-- Live Telemetry Stats -->
+    <div class="card">
+      <h2>Live Telemetry</h2>
+      <dl class="stats">
+        <dt>Hazard Level</dt><dd id="statLevel">CLEAR</dd>
+        <dt>Obstacle Count</dt><dd id="statObjs">0</dd>
+        <dt>Closest Obstacle</dt><dd id="statNear">—</dd>
+        <dt>Processing FPS</dt><dd id="statFps">0 fps</dd>
+        <dt>AI Latency</dt><dd id="statMs">0 ms</dd>
+      </dl>
+    </div>
+
+    <!-- Demo Distance Simulator -->
+    <div class="card">
+      <h2>Demo Distance Simulator</h2>
+      <label class="toggle">
+        <input type="checkbox" id="simToggle"> Enable Simulated Distance Sensor
+      </label>
+      <div class="row">
+        <span style="font-size:13px; color:var(--mute);">Distance Ahead:</span>
+        <span id="simVal" class="slider-val">250 cm</span>
+      </div>
+      <input type="range" id="simSlider" min="30" max="300" value="250">
+      <div class="btn-grid" style="margin-top:6px;">
+        <button type="button" onclick="setSim(250)">Clear 250</button>
+        <button type="button" onclick="setSim(160)">Caution 160</button>
+        <button type="button" onclick="setSim(100)">STOP 100</button>
+      </div>
+      <p class="notice">Use this to easily demo STOP and CAUTION alarms during a presentation without moving around.</p>
+    </div>
+  </aside>
+</main>
+
+<!-- TensorFlow.js and COCO-SSD -->
+<script src="./vendor/tf.min.js"></script>
+<script src="./vendor/coco-ssd.min.js"></script>
+<script>
+if (typeof tf === 'undefined') {
+  document.write('<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"><\/script>');
+  document.write('<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"><\/script>');
+}
+</script>
+
+<script src="script.js"></script>
+</body>
+</html>
